@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import SectionHeader from "./SectionHeader";
 import IndicatorChart from "./IndicatorChart";
 import NetLiquidityChart from "./NetLiquidityChart";
+import TimeHorizonSelector, { TimePeriod } from "./TimeHorizonSelector";
 import { SECTIONS, getIndicatorsBySection } from "@/lib/indicators";
 
 export default function Dashboard() {
+  const [period, setPeriod] = useState<TimePeriod>("1Y");
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
@@ -21,12 +25,15 @@ export default function Dashboard() {
                 Druckenmiller&apos;s framework
               </p>
             </div>
-            <div className="hidden sm:block text-right">
+            <div className="hidden sm:flex flex-col items-end gap-2">
+              <TimeHorizonSelector selected={period} onChange={setPeriod} />
               <p className="text-xs text-gray-600">Data from FRED API</p>
-              <p className="text-xs text-gray-600">
-                Federal Reserve Economic Data
-              </p>
             </div>
+          </div>
+
+          {/* Mobile time selector */}
+          <div className="mt-3 sm:hidden">
+            <TimeHorizonSelector selected={period} onChange={setPeriod} />
           </div>
 
           {/* Framework summary */}
@@ -73,12 +80,13 @@ export default function Dashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Net Liquidity chart spans full width in the liquidity section */}
-                {section.id === "liquidity" && <NetLiquidityChart />}
+                {section.id === "liquidity" && <NetLiquidityChart period={period} />}
 
                 {indicators.map((indicator) => (
                   <IndicatorChart
                     key={indicator.id}
                     indicator={indicator}
+                    period={period}
                     referenceLine={
                       indicator.id === "yield-curve"
                         ? 0

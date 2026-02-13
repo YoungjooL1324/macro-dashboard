@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { ChartDataPoint } from "@/types";
 import { format, parseISO } from "date-fns";
+import { TimePeriod } from "./TimeHorizonSelector";
 
 interface NetLiquidityResponse {
   data: ChartDataPoint[];
@@ -22,7 +23,11 @@ interface NetLiquidityResponse {
   };
 }
 
-export default function NetLiquidityChart() {
+interface NetLiquidityChartProps {
+  period: TimePeriod;
+}
+
+export default function NetLiquidityChart({ period }: NetLiquidityChartProps) {
   const [data, setData] = useState<NetLiquidityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,13 +35,15 @@ export default function NetLiquidityChart() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch("/api/net-liquidity");
+        setLoading(true);
+        const res = await fetch(`/api/net-liquidity?period=${period}`);
         const json = await res.json();
         if (!res.ok) {
           setError(json.message || json.error || "Failed to fetch");
           return;
         }
         setData(json);
+        setError(null);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to fetch net liquidity"
@@ -46,7 +53,7 @@ export default function NetLiquidityChart() {
       }
     }
     fetchData();
-  }, []);
+  }, [period]);
 
   if (loading) {
     return (

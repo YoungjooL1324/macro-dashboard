@@ -1,9 +1,16 @@
-import { NextResponse } from "next/server";
-import { fetchNetLiquidity } from "@/lib/fred";
+import { NextRequest, NextResponse } from "next/server";
+import { fetchNetLiquidity, TimePeriod } from "@/lib/fred";
 
-export async function GET() {
+const VALID_PERIODS = new Set(["1H", "1D", "1W", "6M", "1Y", "5Y", "10Y"]);
+
+export async function GET(request: NextRequest) {
   try {
-    const data = await fetchNetLiquidity();
+    const periodParam = request.nextUrl.searchParams.get("period") || undefined;
+    const period = periodParam && VALID_PERIODS.has(periodParam)
+      ? (periodParam as TimePeriod)
+      : undefined;
+
+    const data = await fetchNetLiquidity(period);
     return NextResponse.json(data);
   } catch (error) {
     const message =

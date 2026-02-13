@@ -1,5 +1,27 @@
 import { FredSeriesResponse, ChartDataPoint, IndicatorData } from "@/types";
-import { format, subYears } from "date-fns";
+import { format, subYears, subMonths, subWeeks, subDays, subHours } from "date-fns";
+
+export type TimePeriod = "1H" | "1D" | "1W" | "6M" | "1Y" | "5Y" | "10Y";
+
+function getStartDateForPeriod(period: TimePeriod): Date {
+  const now = new Date();
+  switch (period) {
+    case "1H":
+      return subHours(now, 1);
+    case "1D":
+      return subDays(now, 1);
+    case "1W":
+      return subWeeks(now, 1);
+    case "6M":
+      return subMonths(now, 6);
+    case "1Y":
+      return subYears(now, 1);
+    case "5Y":
+      return subYears(now, 5);
+    case "10Y":
+      return subYears(now, 10);
+  }
+}
 
 const FRED_BASE_URL = "https://api.stlouisfed.org/fred";
 
@@ -18,18 +40,21 @@ export async function fetchFredSeries(
     observationEnd?: string;
     units?: string;
     frequency?: string;
+    period?: TimePeriod;
   } = {}
 ): Promise<FredSeriesResponse> {
   const apiKey = getApiKey();
   const now = new Date();
-  const twoYearsAgo = subYears(now, 2);
+  const defaultStart = options.period
+    ? getStartDateForPeriod(options.period)
+    : subYears(now, 2);
 
   const params = new URLSearchParams({
     series_id: seriesId,
     api_key: apiKey,
     file_type: "json",
     observation_start:
-      options.observationStart || format(twoYearsAgo, "yyyy-MM-dd"),
+      options.observationStart || format(defaultStart, "yyyy-MM-dd"),
     observation_end: options.observationEnd || format(now, "yyyy-MM-dd"),
     sort_order: "asc",
   });
@@ -66,10 +91,12 @@ export function parseObservations(
 
 export async function fetchIndicatorData(
   seriesId: string,
-  transform?: string
+  transform?: string,
+  period?: TimePeriod
 ): Promise<IndicatorData> {
   const response = await fetchFredSeries(seriesId, {
     units: transform,
+    period,
   });
 
   const data = parseObservations(response);
@@ -97,7 +124,7 @@ export async function fetchIndicatorData(
   };
 }
 
-export async function fetchNetLiquidity(): Promise<{
+export async function fetchNetLiquidity(period?: TimePeriod): Promise<{
   data: ChartDataPoint[];
   components: {
     fedBs: ChartDataPoint[];
@@ -107,9 +134,9 @@ export async function fetchNetLiquidity(): Promise<{
 }> {
   // Fetch all three components in parallel
   const [fedBsResponse, tgaResponse, rrpResponse] = await Promise.all([
-    fetchFredSeries("WALCL"),
-    fetchFredSeries("WTREGEN"),
-    fetchFredSeries("RRPONTSYD", { frequency: "w" }),
+    fetchFredSeries("WALCL", { period }),
+    fetchFredSeries("WTREGEN", { period }),
+    fetchFredSeries("RRPONTSYD", { frequency: "w", period }),
   ]);
 
   const fedBs = parseObservations(fedBsResponse);

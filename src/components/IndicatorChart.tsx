@@ -14,9 +14,12 @@ import { IndicatorConfig } from "@/lib/indicators";
 import { IndicatorData, ChartDataPoint } from "@/types";
 import { format, parseISO } from "date-fns";
 
+import { TimePeriod } from "./TimeHorizonSelector";
+
 interface IndicatorChartProps {
   indicator: IndicatorConfig;
   referenceLine?: number;
+  period: TimePeriod;
 }
 
 function formatValue(value: number, unit: string): string {
@@ -57,6 +60,7 @@ function formatCompactValue(value: number, unit: string): string {
 export default function IndicatorChart({
   indicator,
   referenceLine,
+  period,
 }: IndicatorChartProps) {
   const [data, setData] = useState<IndicatorData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +73,8 @@ export default function IndicatorChart({
       if (indicator.transform) {
         params.set("transform", indicator.transform);
       }
-      const url = `/api/fred/${indicator.fredSeriesId}${params.toString() ? `?${params}` : ""}`;
+      params.set("period", period);
+      const url = `/api/fred/${indicator.fredSeriesId}?${params}`;
       const res = await fetch(url);
       const json = await res.json();
 
@@ -85,7 +90,7 @@ export default function IndicatorChart({
     } finally {
       setLoading(false);
     }
-  }, [indicator.fredSeriesId, indicator.transform]);
+  }, [indicator.fredSeriesId, indicator.transform, period]);
 
   useEffect(() => {
     fetchData();
